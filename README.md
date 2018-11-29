@@ -29,7 +29,7 @@ If you find the code and data useful in your research, please cite:
 - Python 3
 - Tensorflow > 1.0
 - Tqdm
-- [Pre-trained weights of AlexNet](https://www.cs.toronto.edu/~guerzhoy/tf_alexnet/) for initialization
+- [Pre-trained weights of AlexNet](https://www.cs.toronto.edu/~guerzhoy/tf_alexnet/bvlc_alexnet.npy) for initialization
 
 ## Training
 
