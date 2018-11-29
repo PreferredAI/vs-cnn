@@ -42,7 +42,7 @@ python train_base.py --dataset [user,business] --num_epochs 20 --batch_size 64 -
 Train the factor model:
 
 ```bash
-python train_factor.py --dataset [user,business] --num_factors 16 --num_epochs 20 --batch_size 64 --learning_rate 0.0001 --lambda_reg 0.0005
+python train_factor.py --dataset [user,business] --num_factors 16 --num_epochs 20 --learning_rate 0.0001 --lambda_reg 0.0005
 ```
 
 
@@ -51,7 +51,7 @@ python train_factor.py --dataset [user,business] --num_factors 16 --num_epochs 2
 Evaluate the base model:
 
 ```bash
-python eval_base.py --dataset [user,business]
+python eval_base.py --dataset [user,business] --batch_size 64
 ```
 
 Evaluate the factor model:
