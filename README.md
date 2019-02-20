@@ -10,8 +10,9 @@ Presented at [MM 2017](http://www.acmmm.org/2017/)
 
 We provide:
 
-- Code to [train](#training) and [evaluate](#evaluation) the models
+- Code to train and evaluate the models
 - [Data](https://goo.gl/cBF5rn) used for the experiments
+- [Pre-trained weights](https://goo.gl/nxnsUx) of the base models
 
 If you find the code and data useful in your research, please cite:
 
@@ -31,31 +32,18 @@ If you find the code and data useful in your research, please cite:
 - Tqdm
 - [Pre-trained weights of AlexNet](https://www.cs.toronto.edu/~guerzhoy/tf_alexnet/bvlc_alexnet.npy) for initialization
 
-## Training
+## Training and Evaluation
 
-Train the base model:
+- Base model:
 
 ```bash
-python train_base.py --dataset [user,business] --num_epochs 20 --batch_size 64 --learning_rate 0.0001 --lambda_reg 0.0005
+python train_base.py --dataset [user,business]
 ```
 
-Train the factor model:
+- Factor model:
+
+To train the factor models, we need pre-trained weights from the base models for initialization. If you want to save time, the weights can be downloaded from [here](https://goo.gl/nxnsUx).
 
 ```bash
-python train_factor.py --dataset [user,business] --num_factors 16 --num_epochs 20 --learning_rate 0.0001 --lambda_reg 0.0005
-```
-
-
-## Evaluation
-
-Evaluate the base model:
-
-```bash
-python eval_base.py --dataset [user,business] --batch_size 64
-```
-
-Evaluate the factor model:
-
-```bash
-python eval_factor.py --dataset [user,business] --num_factors 16
+python train_factor.py --dataset [user,business] --factor_layer [conv1,conv3,conv5,fc7] --num_factors 16
 ```
