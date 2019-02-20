@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 def conv(x, filter_height, filter_width, num_filters, stride_y, stride_x, name,
-         padding='SAME', groups=1):
+         padding='SAME', groups=1, weights=None, biases=None):
   """Create a convolution layer.
 
   Adapted from: https://github.com/ethereon/caffe-tensorflow
@@ -16,12 +16,14 @@ def conv(x, filter_height, filter_width, num_filters, stride_y, stride_x, name,
                                        padding=padding)
 
   with tf.variable_scope(name) as scope:
-    # Create tf variables for the weights and biases of the conv layer
-    weights = tf.get_variable('weights', shape=[filter_height,
-                                                filter_width,
-                                                input_channels / groups,
-                                                num_filters])
-    biases = tf.get_variable('biases', shape=[num_filters])
+    if weights is None:
+      # Create tf variables for the weights and biases of the conv layer
+      weights = tf.get_variable('weights', shape=[filter_height,
+                                                  filter_width,
+                                                  input_channels / groups,
+                                                  num_filters])
+    if biases is None:
+      biases = tf.get_variable('biases', shape=[num_filters])
 
   if groups == 1:
     conv = convolve(x, weights)
@@ -30,8 +32,7 @@ def conv(x, filter_height, filter_width, num_filters, stride_y, stride_x, name,
   else:
     # Split input and weights and convolve them separately
     input_groups = tf.split(axis=3, num_or_size_splits=groups, value=x)
-    weight_groups = tf.split(axis=3, num_or_size_splits=groups,
-                             value=weights)
+    weight_groups = tf.split(axis=3, num_or_size_splits=groups, value=weights)
     output_groups = [convolve(i, k) for i, k in zip(input_groups, weight_groups)]
 
     # Concat the convolved output together again
@@ -46,14 +47,15 @@ def conv(x, filter_height, filter_width, num_filters, stride_y, stride_x, name,
   return relu
 
 
-def fc(x, num_in, num_out, name, relu=True):
+def fc(x, num_in, num_out, name, relu=True, weights=None, biases=None):
   """Create a fully connected layer."""
   with tf.variable_scope(name) as scope:
 
     # Create tf variables for the weights and biases
-    weights = tf.get_variable('weights', shape=[num_in, num_out],
-                              trainable=True)
-    biases = tf.get_variable('biases', [num_out], trainable=True)
+    if weights is None:
+      weights = tf.get_variable('weights', shape=[num_in, num_out])
+    if biases is None:
+      biases = tf.get_variable('biases', [num_out])
 
     # Matrix multiply weights and inputs and add bias
     act = tf.nn.xw_plus_b(x, weights, biases, name=scope.name)
