@@ -7,7 +7,7 @@ from model_base import VS_CNN
 from data_generator import DataGenerator, CITIES
 from datetime import datetime
 from tqdm import trange
-from tensorboard_logging import Logger
+from tb_logger import Logger
 import numpy as np
 import metrics
 

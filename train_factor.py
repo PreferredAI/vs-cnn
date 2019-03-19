@@ -8,7 +8,7 @@ from model_factor import FVS_CNN
 from data_generator import DataGenerator, CITIES
 from datetime import datetime
 from tqdm import trange
-from tensorboard_logging import Logger
+from tb_logger import Logger
 import metrics
 
 from absl import app
