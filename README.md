@@ -51,7 +51,7 @@ python3 train_factor.py --dataset [user,business] --factor_layer [conv1,conv3,co
 ```
 
 **Note:**
-The factor models use trained weights of the base models for initialization. If you have not trained the base models, the pre-trained weights are provided and need to be extracted before the training.
+The factor models use trained weights of the base models for initialization. If you have not trained the base models, pre-trained weights are provided and need to be extracted before training.
 
 ```bash
 unzip -qq weights.zip
