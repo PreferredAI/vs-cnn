@@ -20,7 +20,7 @@ tf.flags.DEFINE_string("data_dir", "data",
 tf.flags.DEFINE_string("dataset", "user",
                        """Name of dataset (business or user)""")
 
-tf.flags.DEFINE_string("factor_layer", "conv1",
+tf.flags.DEFINE_string("factor_layer", "fc7",
                        """Name of layer to place the factors [conv1, conv3, conv5, fc7] (default: fc7)""")
 tf.flags.DEFINE_integer("num_factors", 16,
                         """Number of specific neurons for user/item (default: 16)""")
@@ -226,9 +226,10 @@ def main(_):
       result_file.write("\n{} Epoch: {}/{}\n".format(datetime.now(), epoch + 1, FLAGS.num_epochs))
 
       if epoch < 20:
-        train(sess, model, generator, warm_up, learning_rate, loss, epoch, logger)
+        update_op = warm_up
       else:
-        train(sess, model, generator, train_op, learning_rate, loss, epoch, logger)
+        update_op = train_op
+      train(sess, model, generator, update_op, learning_rate, loss, epoch, logger)
 
       test(sess, model, generator, result_file)
       # save_model(sess, model, saver, epoch, generator.factor_id_map)

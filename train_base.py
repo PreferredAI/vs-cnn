@@ -212,12 +212,13 @@ def main(_):
       result_file.write("\n{} Epoch: {}/{}\n".format(datetime.now(), epoch + 1, FLAGS.num_epochs))
 
       if epoch < 20:
-        train(sess, model, generator, warm_up, learning_rate, loss, epoch, logger)
+        update_op = warm_up
       else:
-        train(sess, model, generator, train_op, learning_rate, loss, epoch, logger)
+        update_op = train_op
+      train(sess, model, generator, update_op, learning_rate, loss, epoch, logger)
 
       test(sess, model, generator, result_file)
-      save_model(sess, saver, epoch)
+      # save_model(sess, saver, epoch)
 
     result_file.close()
 
