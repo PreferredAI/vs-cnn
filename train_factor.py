@@ -11,54 +11,40 @@ from tqdm import trange
 from tensorboard_logging import Logger
 import metrics
 
+from absl import app
+from absl import flags
+
 # Parameters
 # ==================================================
-FLAGS = tf.flags.FLAGS
+FLAGS = flags.FLAGS
 
-tf.flags.DEFINE_string("data_dir", "data",
-                       """Path to data folder""")
-tf.flags.DEFINE_string("dataset", "user",
-                       """Name of dataset (business or user)""")
+flags.DEFINE_string("data_dir", "data",
+                    """Path to data folder""")
+flags.DEFINE_string("dataset", "user",
+                    """Name of dataset (business or user)""")
 
-tf.flags.DEFINE_string("factor_layer", "fc7",
-                       """Name of layer to place the factors [conv1, conv3, conv5, fc7] (default: fc7)""")
-tf.flags.DEFINE_integer("num_factors", 16,
-                        """Number of specific neurons for user/item (default: 16)""")
-tf.flags.DEFINE_integer("num_checkpoints", 1,
-                        """Number of checkpoints to store (default: 1)""")
-tf.flags.DEFINE_integer("num_epochs", 50,
-                        """Number of training epochs (default: 50)""")
-tf.flags.DEFINE_integer("num_threads", 8,
-                        """Number of threads for data processing (default: 2)""")
-tf.flags.DEFINE_integer("display_step", 1000,
-                        """Display after number of steps (default: 1000)""")
+flags.DEFINE_string("factor_layer", "fc7",
+                    """Name of layer to place the factors [conv1, conv3, conv5, fc7] (default: fc7)""")
+flags.DEFINE_integer("num_factors", 16,
+                     """Number of specific neurons for user/item (default: 16)""")
+flags.DEFINE_integer("num_checkpoints", 1,
+                     """Number of checkpoints to store (default: 1)""")
+flags.DEFINE_integer("num_epochs", 50,
+                     """Number of training epochs (default: 50)""")
+flags.DEFINE_integer("num_threads", 8,
+                     """Number of threads for data processing (default: 2)""")
+flags.DEFINE_integer("display_step", 1000,
+                     """Display after number of steps (default: 1000)""")
 
-tf.flags.DEFINE_float("learning_rate", 0.001,
-                      """Learning rate (default: 0.001)""")
-tf.flags.DEFINE_float("lambda_reg", 0.0005,
-                      """Regularization lambda factor (default: 0.0005)""")
-tf.flags.DEFINE_float("dropout_keep_prob", 0.5,
-                      """Probability of keeping neurons (default: 0.5)""")
+flags.DEFINE_float("learning_rate", 0.001,
+                   """Learning rate (default: 0.001)""")
+flags.DEFINE_float("lambda_reg", 0.0005,
+                   """Regularization lambda factor (default: 0.0005)""")
+flags.DEFINE_float("dropout_keep_prob", 0.5,
+                   """Probability of keeping neurons (default: 0.5)""")
 
-tf.flags.DEFINE_boolean("allow_soft_placement", True,
-                        """Allow device soft device placement""")
-
-skip_layers = [FLAGS.factor_layer]
-train_layers = ['{}_factor'.format(FLAGS.factor_layer)]
-finetune_layers = [l for l in ['fc8', 'fc7', 'fc6', 'conv5', 'conv4', 'conv3', 'conv2', 'conv1']
-                   if not l.startswith(FLAGS.factor_layer)] + ['{}_shared'.format(FLAGS.factor_layer)]
-
-writer_dir = "logs/f_{}".format(FLAGS.dataset)
-checkpoint_dir = "checkpoints/f_{}".format(FLAGS.dataset)
-weight_dir = "weights/{}".format(FLAGS.dataset)
-
-if tf.gfile.Exists(weight_dir):
-  tf.gfile.DeleteRecursively(weight_dir)
-tf.gfile.MakeDirs(weight_dir)
-
-if tf.gfile.Exists(checkpoint_dir):
-  tf.gfile.DeleteRecursively(checkpoint_dir)
-tf.gfile.MakeDirs(checkpoint_dir)
+flags.DEFINE_boolean("allow_soft_placement", True,
+                     """Allow device soft device placement""")
 
 
 def learning_rate_with_decay(initial_learning_rate, batches_per_epoch, boundary_epochs, decay_rates):
@@ -81,7 +67,7 @@ def loss_fn(model):
   return loss
 
 
-def train_fn(loss, generator):
+def train_fn(loss, generator, finetune_layers, train_layers):
   var_list1 = [v for v in tf.trainable_variables() if v.name.split('/')[0] in finetune_layers]
   var_list2 = [v for v in tf.trainable_variables() if v.name.split('/')[0] in train_layers]
 
@@ -178,7 +164,7 @@ def test(sess, model, generator, result_file):
   result_file.flush()
 
 
-def save_model(sess, model, saver, epoch, factor_id_map):
+def save_model(sess, model, saver, epoch, factor_id_map, checkpoint_dir, weight_dir):
   print("{} Saving checkpoint of model...".format(datetime.now()))
   checkpoint_name = os.path.join(checkpoint_dir,
                                  'model_epoch' + str(epoch + 1) + '.ckpt')
@@ -197,6 +183,23 @@ def save_model(sess, model, saver, epoch, factor_id_map):
 
 
 def main(_):
+  skip_layers = [FLAGS.factor_layer]
+  train_layers = ['{}_factor'.format(FLAGS.factor_layer)]
+  finetune_layers = [l for l in ['fc8', 'fc7', 'fc6', 'conv5', 'conv4', 'conv3', 'conv2', 'conv1']
+                     if not l.startswith(FLAGS.factor_layer)] + ['{}_shared'.format(FLAGS.factor_layer)]
+
+  writer_dir = "logs/f_{}".format(FLAGS.dataset)
+  checkpoint_dir = "checkpoints/f_{}".format(FLAGS.dataset)
+  weight_dir = "weights/{}".format(FLAGS.dataset)
+
+  if tf.gfile.Exists(weight_dir):
+    tf.gfile.DeleteRecursively(weight_dir)
+  tf.gfile.MakeDirs(weight_dir)
+
+  if tf.gfile.Exists(checkpoint_dir):
+    tf.gfile.DeleteRecursively(checkpoint_dir)
+  tf.gfile.MakeDirs(checkpoint_dir)
+
   generator = DataGenerator(data_dir=FLAGS.data_dir,
                             dataset=FLAGS.dataset,
                             batch_size=1,
@@ -206,7 +209,7 @@ def main(_):
                   factor_layer=FLAGS.factor_layer, skip_layers=skip_layers,
                   weights_path='weights/{}_base.npy'.format(FLAGS.dataset))
   loss = loss_fn(model)
-  warm_up, train_op, learning_rate = train_fn(loss, generator)
+  warm_up, train_op, learning_rate = train_fn(loss, generator, finetune_layers, train_layers)
   saver = tf.train.Saver(max_to_keep=1)
 
   # Start Tensorflow session
@@ -232,10 +235,10 @@ def main(_):
       train(sess, model, generator, update_op, learning_rate, loss, epoch, logger)
 
       test(sess, model, generator, result_file)
-      # save_model(sess, model, saver, epoch, generator.factor_id_map)
+      # save_model(sess, model, saver, epoch, generator.factor_id_map, checkpoint_dir, weight_dir)
 
     result_file.close()
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  app.run(main)
