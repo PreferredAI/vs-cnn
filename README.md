@@ -8,42 +8,63 @@ This is the code for the paper:
 <br>
 Presented at [MM 2017](http://www.acmmm.org/2017/)
 
-We provide:
+## Hardware
 
-- Code to train and evaluate the models
-- [Data](https://goo.gl/cBF5rn) used for the experiments
-- [Pre-trained weights](https://goo.gl/nxnsUx) of the base models
-
-If you find the code and data useful in your research, please cite:
-
-```
-@inproceedings{vs-cnn,
-  title={Visual sentiment analysis for review images with item-oriented and user-oriented CNN},
-  author={Truong, Quoc-Tuan and Lauw, Hady W},
-  booktitle={Proceedings of the ACM on Multimedia Conference},
-  year={2017},
-}
-```
+- CPU Intel(R) Xeon(R) E5-2650 v4 @ 2.20GHz
+- DRAM 256 GiB
+- GPU NVIDIA Tesla P100
 
 ## Requirements
 
-- Python 3
-- Tensorflow > 1.0
-- Tqdm
-- [Pre-trained weights of AlexNet](https://www.cs.toronto.edu/~guerzhoy/tf_alexnet/bvlc_alexnet.npy) for initialization
+- CUDA 10.0
+- CuDNN 7.5
+- Python 3.6
+- Tensorflow >=1.12, <2.0
+- Scikit-learn >= 0.20
+- Tqdm >= 4.28
 
-## Training and Evaluation
-
-- Base model:
-
-```bash
-python train_base.py --dataset [user,business]
-```
-
-- Factor model:
-
-To train the factor models, we need pre-trained weights from the base models for initialization. If you want to save time, the weights can be downloaded from [here](https://goo.gl/nxnsUx).
+Install dependencies:
 
 ```bash
-python train_factor.py --dataset [user,business] --factor_layer [conv1,conv3,conv5,fc7] --num_factors 16
+pip3 install -r requirements.txt
 ```
+**Note:**
+Tensorflow GPU is installed by default. If you do not have GPU on your machine, please [install](https://www.tensorflow.org/install) CPU version instead.
+
+Download data and pre-trained weights:
+
+```bash
+chmod +x download.sh
+./download.sh
+```
+
+## Experiments
+
+- Train and evaluate the base model VS-CNN:
+
+```bash
+python3 train_base.py --dataset [user,business]
+```
+
+- Train and evaluate the factor models, iVS-CNN (business) and uVS-CNN (user):
+
+```bash
+python3 train_factor.py --dataset [user,business] --factor_layer [conv1,conv3,conv5,fc7] --num_factors 16
+```
+
+**Note:**
+The factor models use trained weights of the base models for initialization. If you have not trained the base models, pre-trained weights are provided and need to be extracted before training.
+
+```bash
+unzip -qq weights.zip
+```
+
+- Train and evaluate Naive Bayes baseline:
+
+```bash
+python3 train_nb.py --dataset [user,business]
+```
+
+## Contact
+
+Questions and discussion are welcome: www.qttruong.info

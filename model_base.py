@@ -51,7 +51,7 @@ class VS_CNN(object):
     self.prob = tf.nn.softmax(self.fc8, name='prob')
 
   def load_initial_weights(self, session):
-    weights_dict = dict(np.load(self.weights_path, encoding='bytes').item())
+    weights_dict = dict(np.load(self.weights_path, allow_pickle=True, encoding='bytes').item())
 
     for op_name in weights_dict.keys():
       if op_name not in self.skip_layers:

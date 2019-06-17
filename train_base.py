@@ -1,61 +1,50 @@
 import os
-import tensorflow as tf
+import gpu_utils
+gpu_utils.setup_one_gpu()
 
+import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from model_base import VS_CNN
 from data_generator import DataGenerator, CITIES
 from datetime import datetime
 from tqdm import trange
-from tensorboard_logging import Logger
+from tb_logger import Logger
 import numpy as np
 import metrics
 
+from absl import app
+from absl import flags
+
 # Parameters
 # ==================================================
-FLAGS = tf.flags.FLAGS
+FLAGS = flags.FLAGS
 
-tf.flags.DEFINE_string("data_dir", "data",
-                       """Path to data folder""")
-tf.flags.DEFINE_string("dataset", "user",
-                       """Name of dataset (business or user)""")
+flags.DEFINE_string("data_dir", "data",
+                    """Path to data folder""")
+flags.DEFINE_string("dataset", "user",
+                    """Name of dataset (business or user)""")
 
-tf.flags.DEFINE_integer("num_checkpoints", 5,
-                        """Number of checkpoints to store (default: 1)""")
-tf.flags.DEFINE_integer("num_epochs", 50,
-                        """Number of training epochs (default: 50)""")
-tf.flags.DEFINE_integer("batch_size", 50,
-                        """Batch Size (default: 50)""")
-tf.flags.DEFINE_integer("num_threads", 8,
-                        """Number of threads for data processing (default: 2)""")
-tf.flags.DEFINE_integer("display_step", 10,
-                        """Display after number of steps (default: 10)""")
+flags.DEFINE_integer("num_checkpoints", 5,
+                     """Number of checkpoints to store (default: 1)""")
+flags.DEFINE_integer("num_epochs", 50,
+                     """Number of training epochs (default: 50)""")
+flags.DEFINE_integer("batch_size", 50,
+                     """Batch Size (default: 50)""")
+flags.DEFINE_integer("num_threads", 8,
+                     """Number of threads for data processing (default: 2)""")
+flags.DEFINE_integer("display_step", 10,
+                     """Display after number of steps (default: 10)""")
 
-tf.flags.DEFINE_float("learning_rate", 0.0001,
-                      """Learning rate (default: 0.0001)""")
-tf.flags.DEFINE_float("lambda_reg", 0.0005,
-                      """Regularization lambda factor (default: 0.0005)""")
-tf.flags.DEFINE_float("dropout_keep_prob", 0.5,
-                      """Probability of keeping neurons (default: 0.5)""")
+flags.DEFINE_float("learning_rate", 0.0001,
+                   """Learning rate (default: 0.0001)""")
+flags.DEFINE_float("lambda_reg", 0.0005,
+                   """Regularization lambda factor (default: 0.0005)""")
+flags.DEFINE_float("dropout_keep_prob", 0.5,
+                   """Probability of keeping neurons (default: 0.5)""")
 
-tf.flags.DEFINE_boolean("allow_soft_placement", True,
-                        """Allow device soft device placement""")
-
-# Network params
-skip_layers = ['fc8']  # no pre-trained weights
-train_layers = ['fc8']
-finetune_layers = ['fc7', 'fc6', 'conv5', 'conv4', 'conv3', 'conv2', 'conv1']
-
-writer_dir = "logs/{}".format(FLAGS.dataset)
-checkpoint_dir = "checkpoints/{}".format(FLAGS.dataset)
-
-if tf.gfile.Exists(writer_dir):
-  tf.gfile.DeleteRecursively(writer_dir)
-tf.gfile.MakeDirs(writer_dir)
-
-if tf.gfile.Exists(checkpoint_dir):
-  tf.gfile.DeleteRecursively(checkpoint_dir)
-tf.gfile.MakeDirs(checkpoint_dir)
+flags.DEFINE_boolean("allow_soft_placement", True,
+                     """Allow device soft device placement""")
 
 
 def learning_rate_with_decay(initial_learning_rate, batches_per_epoch, boundary_epochs, decay_rates):
@@ -78,7 +67,7 @@ def loss_fn(model):
   return loss
 
 
-def train_fn(loss, generator):
+def train_fn(loss, generator, finetune_layers, train_layers):
   var_list1 = [v for v in tf.trainable_variables() if v.name.split('/')[0] in finetune_layers]
   var_list2 = [v for v in tf.trainable_variables() if v.name.split('/')[0] in train_layers]
 
@@ -169,7 +158,7 @@ def test(sess, model, generator, result_file):
   result_file.flush()
 
 
-def save_model(sess, saver, epoch):
+def save_model(sess, saver, epoch, checkpoint_dir):
   print("{} Saving checkpoint of model...".format(datetime.now()))
   checkpoint_name = os.path.join(checkpoint_dir,
                                  'model_epoch' + str(epoch + 1) + '.ckpt')
@@ -186,6 +175,21 @@ def save_model(sess, saver, epoch):
 
 
 def main(_):
+  skip_layers = ['fc8']  # no pre-trained weights
+  train_layers = ['fc8']
+  finetune_layers = ['fc7', 'fc6', 'conv5', 'conv4', 'conv3', 'conv2', 'conv1']
+
+  writer_dir = "logs/{}".format(FLAGS.dataset)
+  checkpoint_dir = "checkpoints/{}".format(FLAGS.dataset)
+
+  if tf.gfile.Exists(writer_dir):
+    tf.gfile.DeleteRecursively(writer_dir)
+  tf.gfile.MakeDirs(writer_dir)
+
+  if tf.gfile.Exists(checkpoint_dir):
+    tf.gfile.DeleteRecursively(checkpoint_dir)
+  tf.gfile.MakeDirs(checkpoint_dir)
+
   generator = DataGenerator(data_dir=FLAGS.data_dir,
                             dataset=FLAGS.dataset,
                             batch_size=FLAGS.batch_size,
@@ -193,7 +197,7 @@ def main(_):
 
   model = VS_CNN(num_classes=2, skip_layers=skip_layers)
   loss = loss_fn(model)
-  warm_up, train_op, learning_rate = train_fn(loss, generator)
+  warm_up, train_op, learning_rate = train_fn(loss, generator, finetune_layers, train_layers)
   saver = tf.train.Saver(max_to_keep=FLAGS.num_checkpoints)
 
   config = tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement)
@@ -212,15 +216,16 @@ def main(_):
       result_file.write("\n{} Epoch: {}/{}\n".format(datetime.now(), epoch + 1, FLAGS.num_epochs))
 
       if epoch < 20:
-        train(sess, model, generator, warm_up, learning_rate, loss, epoch, logger)
+        update_op = warm_up
       else:
-        train(sess, model, generator, train_op, learning_rate, loss, epoch, logger)
+        update_op = train_op
+      train(sess, model, generator, update_op, learning_rate, loss, epoch, logger)
 
       test(sess, model, generator, result_file)
-      save_model(sess, saver, epoch)
+      # save_model(sess, saver, epoch, checkpoint_dir)
 
     result_file.close()
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  app.run(main)
