@@ -1,6 +1,8 @@
 import os
-import tensorflow as tf
+import gpu_utils
+gpu_utils.setup_one_gpu()
 
+import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import numpy as np
