@@ -115,8 +115,8 @@ class FVS_CNN(object):
     else:
       factor = self.factor_id_map[factor_id]
       if weight_dir:
-        weights = np.load(os.path.join(weight_dir, factor, 'weights.npy'))
-        biases = np.load(os.path.join(weight_dir, factor, 'biases.npy'))
+        weights = np.load(os.path.join(weight_dir, factor, 'weights.npy'), allow_pickle=True)
+        biases = np.load(os.path.join(weight_dir, factor, 'biases.npy'), allow_pickle=True)
       else:
         if self.factor_layer.startswith('conv'):
           weights = np.random.normal(0.0, scale=0.01, size=self.factor_weight_size)
@@ -136,7 +136,7 @@ class FVS_CNN(object):
 
   def load_initial_weights(self, session):
     print('Loading initial weights from:', self.weights_path)
-    self.weights_dict = dict(np.load(self.weights_path, encoding='bytes').item())
+    self.weights_dict = dict(np.load(self.weights_path, encoding='bytes', allow_pickle=True).item())
 
     for op_name in self.weights_dict.keys():
       if op_name not in self.skip_layers:
