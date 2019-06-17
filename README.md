@@ -16,8 +16,10 @@ Presented at [MM 2017](http://www.acmmm.org/2017/)
 
 ## Requirements
 
-- Python 3
-- Tensorflow >= 1.12
+- CUDA 10.0
+- CuDNN 7.5
+- Python 3.6
+- Tensorflow >=1.12, <2.0
 - Scikit-learn >= 0.20
 - Tqdm >= 4.28
 
