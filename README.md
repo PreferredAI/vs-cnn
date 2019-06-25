@@ -51,6 +51,33 @@ python3 train_base.py --dataset [user,business]
 ```bash
 python3 train_factor.py --dataset [user,business] --factor_layer [conv1,conv3,conv5,fc7] --num_factors 16
 ```
+Training arguments:
+```
+--data_dir            DATA_DIR
+                      Path to data directory (default: 'data')
+--dataset             DATASET
+                      Name of dataset business/user (default: 'user')
+--learning_rate       LEARNING_RATE
+                      Learning rate (default: 0.0001)
+--num_epochs          NUM_EPOCHS
+                      Number of training epochs (default: 50)
+--batch_size          BATCH_SIZE (only for the base model VS-CNN)
+                      Number of images per batch (default: 50)
+--factor_layer        FACTOR_LAYER (only for factor models iVS-CNN/uVS-CNN)
+                      Name of the layer to introduce user/item factors conv1/conv3/conv5/fc7 (default: 'fc7')
+--num_factors         NUM_FACTORS (only for factor models iVS-CNN/uVS-CNN)
+                      Number of neurons/filters for user/item (default: 16)
+--lambda_reg          LAMBDA_REG
+                      Lambda hype-parameter for L2 regularization (default: 5e-4)
+--dropout_keep_prob   DROPOUT_KEEP_PROB
+                      Probability of keeping neurons from dropout (default: 0.5)
+--num_threads         NUM_THREADS
+                      Number of threads for data processing (default: 8)
+--num_checkpoints     NUM_CHECKPOINTS
+                      Number of checkpoints to store (default: 5)
+--display_step        DISPLAY_STEP
+                      Number of steps to display log into TensorBoard (default: 10)
+```
 
 **Note:**
 The factor models use trained weights of the base models for initialization. If you have not trained the base models, pre-trained weights are provided and need to be extracted before training.
