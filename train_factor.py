@@ -219,7 +219,7 @@ def main(_):
   config.gpu_options.allow_growth = True
   with tf.Session(config=config) as sess:
     logger = Logger(writer_dir, sess.graph)
-    result_file = open('result_{}_{}.txt'.format(FLAGS.dataset, FLAGS.factor_layer), 'w')
+    result_file = open('result_{}_{}_k={}.txt'.format(FLAGS.dataset, FLAGS.factor_layer, FLAGS.num_factors), 'w')
 
     sess.run(tf.global_variables_initializer())
     model.load_initial_weights(sess)
