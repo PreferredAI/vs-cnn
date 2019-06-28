@@ -93,7 +93,7 @@ def train(sess, model, generator, train_op, learning_rate, loss, epoch, logger):
 
   loop = trange(generator.train_batches_per_epoch, desc='Training')
   for step in loop:
-    batch_img, batch_label, _ = generator.get_next(sess)
+    _, batch_img, batch_label, _ = generator.get_next(sess)
     _, _loss = sess.run([train_op, loss],
                         feed_dict={model.x: batch_img,
                                    model.y: batch_label,
@@ -117,7 +117,7 @@ def test(sess, model, generator, result_file):
     gts = []
     factors = []
     for _ in trange(generator.test_batches_per_epoch[city], desc=city):
-      batch_img, batch_label, batch_factor = generator.get_next(sess)
+      _, batch_img, batch_label, batch_factor = generator.get_next(sess)
       pd = sess.run(model.prob, feed_dict={model.x: batch_img})
       pds.extend(pd.tolist())
       gts.extend(batch_label.tolist())
@@ -222,7 +222,7 @@ def main(_):
       train(sess, model, generator, update_op, learning_rate, loss, epoch, logger)
 
       test(sess, model, generator, result_file)
-      # save_model(sess, saver, epoch, checkpoint_dir)
+      save_model(sess, saver, epoch, checkpoint_dir)
 
     result_file.close()
 

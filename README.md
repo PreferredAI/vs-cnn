@@ -92,6 +92,24 @@ unzip -qq weights.zip
 python3 train_nb.py --dataset [user,business]
 ```
 
+## Reproducing Tables and Figures
+
+- To aggregate the results and construct the `Tables 1 to 8` as reported, it requires both iV-CNN and uVS-CNN trained with `k = 8` and `k = 16`, also all the output files to be placed inside the same folder (i.e., result_dir). 
+The created tables will be saved within the same folder.
+```bash
+python3 gen_tables.py --dir result_dir
+```
+
+- To create `Figure 5, 7 and 9`, we retrieve the top 300 images for each of the positive and negative classes, then manually cluster them into 4 categories:
+```bash
+python3 case_study_base.py --dataset [user,business] --num_images 300
+```
+
+- For "contrarian" items/users in `Figure 6, 8, and 10`, we can retrieve those users/items and then analyze their images:
+```bash
+python3 case_study_factor.py --dataset [user,business] --num_items 100 --input_dir selected_images --output_dir retrieved_items
+```
+
 ## Contact
 
 Questions and discussion are welcome: www.qttruong.info

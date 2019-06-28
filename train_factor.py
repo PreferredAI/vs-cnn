@@ -100,7 +100,7 @@ def train(sess, model, generator, train_op, learning_rate, loss, epoch, logger):
   count = 0
   loop = trange(generator.train_batches_per_epoch, desc='Training')
   for step in loop:
-    img, label, factor = generator.get_next(sess)
+    _, img, label, factor = generator.get_next(sess)
     model.load_factor_weights(sess, factor)
     _, _loss = sess.run([train_op, loss], feed_dict={model.x: img, model.y: label})
     sum_loss += _loss
@@ -127,7 +127,7 @@ def test(sess, model, generator, result_file):
     gts = []
     factors = []
     for _ in trange(generator.test_batches_per_epoch[city], desc=city):
-      batch_img, batch_label, batch_factor = generator.get_next(sess)
+      _, batch_img, batch_label, batch_factor = generator.get_next(sess)
       model.load_factor_weights(sess, batch_factor)
       pd = sess.run(model.prob, feed_dict={model.x: batch_img})
       pds.extend(pd.tolist())
@@ -179,8 +179,8 @@ def save_model(sess, model, saver, epoch, factor_id_map, checkpoint_dir, weight_
     factor_weight_path = os.path.join(weight_dir, factor)
     if not tf.gfile.Exists(factor_weight_path):
       tf.gfile.MakeDirs(factor_weight_path)
-    np.save(os.path.join(factor_weight_path, 'weights.npy'), model.factor_weight_dict[factor])
-    np.save(os.path.join(factor_weight_path, 'biases.npy'), model.factor_bias_dict[factor])
+    np.save(os.path.join(factor_weight_path, 'weights.npy'), model.factor_weight_dict[factor_id])
+    np.save(os.path.join(factor_weight_path, 'biases.npy'), model.factor_bias_dict[factor_id])
   print("{} Factor weights saved at {}".format(datetime.now(), weight_dir))
 
 
@@ -219,7 +219,7 @@ def main(_):
   config.gpu_options.allow_growth = True
   with tf.Session(config=config) as sess:
     logger = Logger(writer_dir, sess.graph)
-    result_file = open('result_{}_{}.txt'.format(FLAGS.dataset, FLAGS.factor_layer), 'w')
+    result_file = open('result_{}_{}_k={}.txt'.format(FLAGS.dataset, FLAGS.factor_layer, FLAGS.num_factors), 'w')
 
     sess.run(tf.global_variables_initializer())
     model.load_initial_weights(sess)
@@ -237,7 +237,7 @@ def main(_):
       train(sess, model, generator, update_op, learning_rate, loss, epoch, logger)
 
       test(sess, model, generator, result_file)
-      # save_model(sess, model, saver, epoch, generator.factor_id_map, checkpoint_dir, weight_dir)
+      save_model(sess, model, saver, epoch, generator.factor_id_map, checkpoint_dir, weight_dir)
 
     result_file.close()
 

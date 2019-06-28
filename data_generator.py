@@ -7,7 +7,7 @@ IMAGENET_MEAN = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32)
 CITIES = ['Boston', 'Chicago', 'Houston', 'LosAngeles', 'NewYork', 'SanFrancisco', 'Seattle']
 
 
-def parse_function(filename, label, factor, train=False):
+def parse_function(filename, label, train=False):
   """Input parser for samples of the training set."""
   # convert label number into one-hot-encoding
   one_hot = tf.one_hot(label, 2)
@@ -28,13 +28,15 @@ def parse_function(filename, label, factor, train=False):
   # RGB -> BGR
   img_bgr = img[:, :, ::-1]
 
-  return img_bgr, one_hot, factor
+  return img_bgr, one_hot
 
 def parse_function_train(filename, label, factor):
-  return parse_function(filename, label, factor, train=True)
+  img, onehot_label = parse_function(filename, label, train=True)
+  return filename, img, onehot_label, factor
 
 def parse_function_test(filename, label, factor):
-  return parse_function(filename, label, factor, train=False)
+  img, onehot_label = parse_function(filename, label, train=False)
+  return filename, img, onehot_label, factor
 
 class DataGenerator(object):
 
