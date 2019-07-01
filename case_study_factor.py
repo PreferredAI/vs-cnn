@@ -110,17 +110,17 @@ def retrieve(sess, model, generator):
   for factor_id in tqdm(model.factor_id_map.keys(), desc="Retrieving"):
     model.load_factor_weights(sess, [factor_id], "weights/{}".format(FLAGS.dataset))
     sess.run(init_op)
-    pds = []
-    gts = []
+    prob_sum = 0
     for _ in range(num_batches):
       _, batch_img, batch_label, batch_factor = sess.run(next_op)
       pd = sess.run(model.prob, feed_dict={model.x: batch_img})
-      pds.extend(pd.argmax(axis=1).tolist())
-      gts.extend(batch_label.argmax(axis=1).tolist())
-    pds = np.asarray(pds)
-    gts = np.asarray(gts)
+      pd_labels = pd.argmax(axis=1)
+      gt_labels = batch_label.argmax(axis=1)
+      for idx, (pd_label, gt_label) in enumerate(zip(pd_labels, gt_labels)):
+        if pd_label != gt_label:
+          prob_sum += pd[idx][pd_label]
 
-    reverse_count[model.factor_id_map[factor_id]] = np.sum(np.abs(gts - pds))
+    reverse_count[model.factor_id_map[factor_id]] = prob_sum
 
   if not os.path.exists(FLAGS.output_dir):
     os.makedirs(FLAGS.output_dir)
@@ -128,10 +128,10 @@ def retrieve(sess, model, generator):
   retrieved_sentiment = 'p' if labels[0] == 0 else 'n'
 
   with open(os.path.join(FLAGS.output_dir, 'reverse_items.txt'), 'w') as f:
-    for factor, count in reverse_count.most_common(FLAGS.num_items):
+    for rank, (factor, count) in enumerate(reverse_count.most_common(FLAGS.num_items)):
       f.write('{} {}\n'.format(factor, count))
 
-      dst_dir = os.path.join(FLAGS.output_dir, factor)
+      dst_dir = os.path.join(FLAGS.output_dir, '{}_{}'.format(rank + 1, factor))
       if not os.path.exists(dst_dir):
         os.makedirs(dst_dir)
       city, item_name = factor.split('_')
