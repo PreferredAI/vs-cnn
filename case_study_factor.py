@@ -1,6 +1,4 @@
 import os
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from collections import Counter
 import glob
 from shutil import copy2
@@ -13,10 +11,15 @@ import tensorflow as tf
 import numpy as np
 from absl import app
 from absl import flags
+from sklearn.metrics.pairwise import cosine_distances
 
+from model_base import VS_CNN
 from model_factor import FVS_CNN
 from data_generator import DataGenerator, parse_function_test
-from tqdm import tqdm
+from tqdm import tqdm, trange
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 # Parameters
 # ==================================================
@@ -142,7 +145,7 @@ def retrieve(sess, model, generator):
         copy2(os.path.join(src_dir, fn), os.path.join(dst_dir, fn))
 
 
-def main(_):
+def retrieve_items():
   generator = DataGenerator(data_dir=FLAGS.data_dir,
                             dataset=FLAGS.dataset,
                             batch_size=1,
@@ -150,15 +153,81 @@ def main(_):
 
   model = FVS_CNN(num_classes=2, num_factors=FLAGS.num_factors, factor_id_map=generator.factor_id_map,
                   factor_layer=FLAGS.factor_layer)
-  saver = tf.train.Saver()
 
   # Start Tensorflow session
   config = tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement)
   config.gpu_options.allow_growth = True
   with tf.Session(config=config) as sess:
-    saver.restore(sess, tf.train.latest_checkpoint("checkpoints/f_{}".format(FLAGS.dataset)))
+    tf.train.Saver().restore(sess, tf.train.latest_checkpoint("checkpoints/f_{}".format(FLAGS.dataset)))
     load_factor_weights(model, "weights/{}".format(FLAGS.dataset))
     retrieve(sess, model, generator)
+
+
+def sort(retrieved_X, input_X):
+  print('Sorting ...')
+  sim = cosine_distances(retrieved_X, input_X).sum(axis=1)
+  return np.argsort(sim), sim
+
+
+def semantic_sort():
+  input_img_paths = glob.glob('{}/*.jpg'.format(FLAGS.input_dir))
+  input_img_feats = np.empty((len(input_img_paths), 4096), dtype=np.float)
+  input_num_batches = int(np.ceil(len(input_img_paths) / FLAGS.batch_size))
+  input_init_op, input_next_op = build_iter(
+    input_img_paths, np.zeros(len(input_img_paths)), np.zeros(len(input_img_paths)))
+
+  retrieved_img_paths = glob.glob('{}/*/*.jpg'.format(FLAGS.output_dir))
+  retrived_img_feats = np.empty((len(retrieved_img_paths), 4096), dtype=np.float)
+  retrieved_num_batches = int(np.ceil(len(retrieved_img_paths) / FLAGS.batch_size))
+  retrieved_init_op, retrieved_next_op = build_iter(
+    retrieved_img_paths, np.zeros(len(retrieved_img_paths)), np.zeros(len(retrieved_img_paths)))
+
+  default_sess = tf.Session()
+
+  graph = tf.Graph()
+  with graph.as_default():
+    model = VS_CNN(num_classes=2, skip_layers=[], weights_path='weights/{}_base.npy'.format(FLAGS.dataset))
+
+  config = tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement)
+  config.gpu_options.allow_growth = True
+  with tf.Session(config=config, graph=graph) as sess:
+    sess.run(tf.global_variables_initializer())
+    model.load_initial_weights(sess)
+
+    # input images
+    default_sess.run(input_init_op)
+    for i in trange(input_num_batches, desc='Extracting features'):
+      _, batch_img, _, _ = default_sess.run(input_next_op)
+      start_idx = i * FLAGS.batch_size
+      end_idx = min(start_idx + FLAGS.batch_size, len(input_img_paths))
+      input_img_feats[start_idx:end_idx] = sess.run(model.fc7, feed_dict={model.x: batch_img})
+
+    # retrieved images
+    default_sess.run(retrieved_init_op)
+    for i in trange(retrieved_num_batches, desc='Extracting features'):
+      _, batch_img, _, _ = default_sess.run(retrieved_next_op)
+      start_idx = i * FLAGS.batch_size
+      end_idx = min(start_idx + FLAGS.batch_size, len(retrieved_img_paths))
+      retrived_img_feats[start_idx:end_idx] = sess.run(model.fc7, feed_dict={model.x: batch_img})
+
+  # image ranking based on similarity
+  sort_indices, distances = sort(retrived_img_feats, input_img_feats)
+
+  dst_dir = os.path.join(FLAGS.output_dir, '0_top_similar_images')
+  if not os.path.exists(dst_dir):
+    os.makedirs(dst_dir)
+
+  with open(os.path.join(FLAGS.output_dir, 'sorted_images.txt'), 'w') as f:
+    for i, idx in enumerate(sort_indices[:FLAGS.num_items]):
+      img_name = os.path.basename(retrieved_img_paths[idx])
+      f.write('{} {}\n'.format(img_name, distances[idx]))
+      dst_path = os.path.join(dst_dir, '{}_{}'.format(str(i).zfill(len(str(FLAGS.num_items))), img_name))
+      copy2(retrieved_img_paths[idx], dst_path)
+
+
+def main(_):
+  retrieve_items()
+  semantic_sort()
 
 
 if __name__ == '__main__':

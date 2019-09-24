@@ -43,8 +43,8 @@ class VS_CNN(object):
     dropout6 = dropout(fc6, self.keep_prob)
 
     # 7th Layer: FC (w ReLu) -> Dropout
-    fc7 = fc(dropout6, 4096, 4096, name='fc7')
-    dropout7 = dropout(fc7, self.keep_prob)
+    self.fc7 = fc(dropout6, 4096, 4096, name='fc7')
+    dropout7 = dropout(self.fc7, self.keep_prob)
 
     # 8th Layer: FC and return unscaled activations
     self.fc8 = fc(dropout7, 4096, self.num_classes, relu=False, name='fc8')
