@@ -18,7 +18,7 @@ from model_base import VS_CNN
 from model_factor import FVS_CNN
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 # Parameters
 # ==================================================
@@ -98,7 +98,7 @@ def load_factor_weights(model, weight_dir):
   for factor_id, factor in tqdm(model.factor_id_map.items(), desc='Loading weights'):
     weights = np.load(os.path.join(weight_dir, factor, 'weights.npy'),
                       allow_pickle=True)
-    biases = np.load(os.path.join(weight_dir, factor, 'biases.npy'), 
+    biases = np.load(os.path.join(weight_dir, factor, 'biases.npy'),
                      allow_pickle=True)
     model.factor_weight_dict[factor_id] = weights
     model.factor_bias_dict[factor_id] = biases
@@ -138,7 +138,7 @@ def retrieve(sess, model, generator):
     city, item_name = factor.split('_')
     src_dir = '{}/{}/train'.format(FLAGS.data_dir, FLAGS.dataset)
     for fn in [f for f in os.listdir(src_dir)
-               if (('{}_{}'.format(city, retrieved_sentiment) in f) and 
+               if (('{}_{}'.format(city, retrieved_sentiment) in f) and
                    (item_name + '_' in f))]:
       copy2(os.path.join(src_dir, fn), os.path.join(dst_dir, fn))
 
@@ -157,7 +157,7 @@ def retrieve_items():
   config.gpu_options.allow_growth = True
   with tf.Session(config=config) as sess:
     tf.train.Saver().restore(
-      sess, 
+      sess,
       tf.train.latest_checkpoint("checkpoints/f_{}".format(FLAGS.dataset))
     )
     load_factor_weights(model, "weights/{}".format(FLAGS.dataset))
