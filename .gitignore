@@ -3,7 +3,9 @@ data/
 weights/
 checkpoints/
 logs/
-
+case_study/
+result*
+*.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
