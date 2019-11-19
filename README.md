@@ -107,7 +107,7 @@ python3 case_study_base.py --dataset [user,business] --num_images 300
 
 - For "contrarian" items/users in `Figure 6, 8, and 10`, we can retrieve those users/items and then analyze their images:
 ```bash
-python3 case_study_factor.py --dataset [user,business] --num_items 100 --input_dir selected_images --output_dir retrieved_items
+python3 case_study_factor.py --dataset [user,business] --num_items 10 --input_dir selected_images --output_dir retrieved_items
 ```
 
 ## Contact
