@@ -41,8 +41,8 @@ flags.DEFINE_integer("num_threads", 8,
                      """Number of threads for data processing (default: 2)""")
 flags.DEFINE_integer("batch_size", 50,
                      """Batch Size (default: 50)""")
-flags.DEFINE_integer("num_items", 100,
-                     """Number of top user/business to be retrieved (default: 100)""")
+flags.DEFINE_integer("num_items", 10,
+                     """Number of top user/business to be retrieved (default: 10)""")
 
 flags.DEFINE_boolean("allow_soft_placement", True,
                      """Allow device soft device placement""")
