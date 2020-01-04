@@ -165,7 +165,6 @@ def retrieve_items():
 
 
 def sort(retrieved_X, input_X):
-  print('Sorting ...')
   sim = cosine_distances(retrieved_X, input_X).sum(axis=1)
   return np.argsort(sim), sim
 
@@ -177,7 +176,12 @@ def sort_images():
   input_init_op, input_next_op = build_iter(
       input_img_paths, np.zeros(len(input_img_paths)), np.zeros(len(input_img_paths)))
 
-  retrieved_img_paths = glob.glob('{}/tmp/*/*.jpg'.format(FLAGS.output_dir))
+  chunk_indices = [0]
+  retrieved_img_paths = []
+  for f_path in sorted(glob.glob('{}/tmp/*'.format(FLAGS.output_dir))):
+    retrieved_img_paths.extend(glob.glob('{}/*.jpg'.format(f_path)))
+    chunk_indices.append(len(retrieved_img_paths))
+
   retrived_img_feats = np.empty((len(retrieved_img_paths), 4096), dtype=np.float)
   retrieved_num_batches = int(np.ceil(len(retrieved_img_paths) / FLAGS.batch_size))
   retrieved_init_op, retrieved_next_op = build_iter(
@@ -215,15 +219,13 @@ def sort_images():
           model.fc7, feed_dict={model.x: batch_img})
 
   # image ranking based on similarity
-  sort_indices, _ = sort(retrived_img_feats, input_img_feats)
+  for i, (start_idx, end_idx) in enumerate(zip(chunk_indices[:-1], chunk_indices[1:])):
+    sort_indices, _ = sort(retrived_img_feats[start_idx:end_idx], input_img_feats)
+    idx = start_idx + sort_indices[0] # select the most similar image to be the representative
 
-  if not os.path.exists(FLAGS.output_dir):
-    os.makedirs(FLAGS.output_dir)
-
-  for i, idx in enumerate(sort_indices[:FLAGS.num_items]):
     img_name = os.path.basename(retrieved_img_paths[idx])
     dst_path = os.path.join(FLAGS.output_dir, '{}_{}'.format(
-        str(i).zfill(len(str(FLAGS.num_items))), img_name))
+      str(i).zfill(len(str(FLAGS.num_items))), img_name))
     copy2(retrieved_img_paths[idx], dst_path)
 
   rmtree(os.path.join(FLAGS.output_dir, 'tmp'))
