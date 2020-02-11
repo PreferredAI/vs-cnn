@@ -233,7 +233,7 @@ def sort_images():
     for i, idx in enumerate(sort_indices[:FLAGS.num_images]):
       img_name = os.path.basename(retrieved_img_paths[idx])
       dst_path = os.path.join(FLAGS.output_dir, '{}_{}'.format(
-          str(i).zfill(len(str(FLAGS.num_items))), img_name))
+          str(i).zfill(len(str(FLAGS.num_images))), img_name))
       copy2(retrieved_img_paths[idx], dst_path)
   elif FLAGS.option == 2:
     for i, (start_idx, end_idx) in enumerate(zip(chunk_indices[:-1], chunk_indices[1:])):
