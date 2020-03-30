@@ -41,8 +41,11 @@ flags.DEFINE_integer("num_threads", 8,
                      """Number of threads for data processing (default: 2)""")
 flags.DEFINE_integer("batch_size", 50,
                      """Batch Size (default: 50)""")
-flags.DEFINE_integer("num_items", 10,
-                     """Number of top user/business to be retrieved (default: 10)""")
+
+flags.DEFINE_integer("num_items", 100,
+                     """Number of top user/business to be retrieved (default: 100)""")
+flags.DEFINE_integer("num_images", 5,
+                     """Number of images to be presented (default: 5)""")
 
 flags.DEFINE_boolean("allow_soft_placement", True,
                      """Allow device soft device placement""")
@@ -219,13 +222,12 @@ def sort_images():
           model.fc7, feed_dict={model.x: batch_img})
 
   # image ranking based on similarity
-  for i, (start_idx, end_idx) in enumerate(zip(chunk_indices[:-1], chunk_indices[1:])):
-    sort_indices, _ = sort(retrived_img_feats[start_idx:end_idx], input_img_feats)
-    idx = start_idx + sort_indices[0] # select the most similar image to be the representative
+  sort_indices, _ = sort(retrived_img_feats, input_img_feats)
 
+  for i, idx in enumerate(sort_indices[:FLAGS.num_images]):
     img_name = os.path.basename(retrieved_img_paths[idx])
     dst_path = os.path.join(FLAGS.output_dir, '{}_{}'.format(
-      str(i).zfill(len(str(FLAGS.num_items))), img_name))
+        str(i).zfill(len(str(FLAGS.num_images))), img_name))
     copy2(retrieved_img_paths[idx], dst_path)
 
   rmtree(os.path.join(FLAGS.output_dir, 'tmp'))
