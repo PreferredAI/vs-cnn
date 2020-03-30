@@ -42,11 +42,6 @@ flags.DEFINE_integer("num_threads", 8,
 flags.DEFINE_integer("batch_size", 50,
                      """Batch Size (default: 50)""")
 
-flags.DEFINE_integer("option", 1,
-                     """Option of ranking images from contrarian items [1, 2] (default: 1)
-                     Option 1: rank all images as a pool
-                     Option 2: each item one image
-                     """)
 flags.DEFINE_integer("num_items", 100,
                      """Number of top user/business to be retrieved (default: 100)""")
 flags.DEFINE_integer("num_images", 5,
@@ -227,25 +222,13 @@ def sort_images():
           model.fc7, feed_dict={model.x: batch_img})
 
   # image ranking based on similarity
-  if FLAGS.option == 1:
-    sort_indices, _ = sort(retrived_img_feats, input_img_feats)
+  sort_indices, _ = sort(retrived_img_feats, input_img_feats)
 
-    for i, idx in enumerate(sort_indices[:FLAGS.num_images]):
-      img_name = os.path.basename(retrieved_img_paths[idx])
-      dst_path = os.path.join(FLAGS.output_dir, '{}_{}'.format(
-          str(i).zfill(len(str(FLAGS.num_images))), img_name))
-      copy2(retrieved_img_paths[idx], dst_path)
-  elif FLAGS.option == 2:
-    for i, (start_idx, end_idx) in enumerate(zip(chunk_indices[:-1], chunk_indices[1:])):
-      sort_indices, _ = sort(retrived_img_feats[start_idx:end_idx], input_img_feats)
-      idx = start_idx + sort_indices[0] # select the most similar image to be the representative
-
-      img_name = os.path.basename(retrieved_img_paths[idx])
-      dst_path = os.path.join(FLAGS.output_dir, '{}_{}'.format(
-        str(i).zfill(len(str(FLAGS.num_items))), img_name))
-      copy2(retrieved_img_paths[idx], dst_path)
-  else:
-    raise ValueError(f"{FLAGS.option} is not a valid option")
+  for i, idx in enumerate(sort_indices[:FLAGS.num_images]):
+    img_name = os.path.basename(retrieved_img_paths[idx])
+    dst_path = os.path.join(FLAGS.output_dir, '{}_{}'.format(
+        str(i).zfill(len(str(FLAGS.num_images))), img_name))
+    copy2(retrieved_img_paths[idx], dst_path)
 
   rmtree(os.path.join(FLAGS.output_dir, 'tmp'))
 
